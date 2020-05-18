@@ -8,27 +8,30 @@ public final class FastCollinearPoints {
     private LineSegment[] segments;
     private Point[] addedPoints;
     private int number;
+    private int addedNumber = 0;
 
     // finds all line segments containing 4 or more points
     public FastCollinearPoints(Point[] array) {
-        if (array == null || array.length < 4 || arrayContains(array, null)) {
+        if (array == null || arrayHasNull(array)) {
             throw new IllegalArgumentException();
         }
+        points = array.clone();
 
-        for (int i = 0; i < array.length; i++) {
-            Point value = array[i];
-            array[i] = null;
-            if (arrayContains(array, value)) {
+        Point prev = null;
+        Arrays.sort(points);
+        for (Point p : points) {
+            if (prev != null && prev.compareTo(p) == 0) {
                 throw new IllegalArgumentException();
             }
-            array[i] = value;
+            prev = p;
         }
 
-        points = array.clone();
         segments = new LineSegment[0];
         addedPoints = new Point[0];
 
-        calculateSegments();
+        if (points.length >= 4) {
+            calculateSegments();
+        }
     }
 
     // the number of line segments
@@ -62,30 +65,31 @@ public final class FastCollinearPoints {
         for (int indexP = 0; indexP < points.length - 3; indexP++) {
             Point p = points[indexP];
 
+            int start = indexP + 1;
+            Arrays.sort(points, start, points.length, p.slopeOrder());
+
             /*
-            double[] slopes = new double[points.length - indexP - 1];
-            for (int i = indexP + 1; i < points.length; i++) {
-                slopes[i - indexP - 1] = p.slopeTo(points[i]);
+            double[] slopes = new double[points.length - start];
+            for (int i = start; i < points.length; i++) {
+                slopes[i - start] = p.slopeTo(points[i]);
             }
              */
 
-            Arrays.sort(points, indexP + 1, points.length, p.slopeOrder());
-
             int counter = 1;
-            double prevValue = Double.NaN;
+            double prevSlope = Double.NaN;
 
-            for (int i = indexP + 1; i < points.length; i++) {
+            for (int i = start; i < points.length; i++) {
                 Point q = points[i];
                 double slope = p.slopeTo(q);
 
-                if (Double.compare(slope, prevValue) == 0) {
+                if (Double.compare(slope, prevSlope) == 0) {
                     counter++;
                 } else {
                     if (counter > 2) {
                         number = addSegment(p, i - 1, counter, number);
                     }
                     counter = 1;
-                    prevValue = slope;
+                    prevSlope = slope;
                 }
             }
 
@@ -109,16 +113,34 @@ public final class FastCollinearPoints {
             }
         }
 
-        for (int i = 0; i < segmentIndex * 2; i += 2) {
-            double existentSlope = addedPoints[i].slopeTo(addedPoints[i + 1]);
-            double currentSlope = p.slopeTo(addedPoints[i]);
+        for (int i = 0; i < addedNumber; i += 2) {
+            Point exMin = addedPoints[i];
+            Point exMax = addedPoints[i + 1];
 
-            if (Double.compare(currentSlope, existentSlope) == 0) {
+            if (min.compareTo(exMin) < 0 || max.compareTo(exMax) > 0) {
+                continue;
+            }
+
+            double existentSlope = exMin.slopeTo(exMax);
+            double currentSlope = min.slopeTo(max);
+            double compareSlope;
+
+            if (min.compareTo(exMin) == 0) {
+                compareSlope = min.slopeTo(exMax);
+            } else {
+                compareSlope = min.slopeTo(exMin);
+            }
+
+            if (Double.compare(currentSlope, existentSlope) == 0
+                        && Double.compare(currentSlope, compareSlope) == 0
+            ) {
                 return segmentIndex;
             }
         }
 
-        appendPoints(min, max, segmentIndex * 2);
+        if (pointsNumber > 3) {
+            appendPoints(min, max);
+        }
         appendSegment(new LineSegment(min, max), segmentIndex);
 
         return segmentIndex + 1;
@@ -131,18 +153,20 @@ public final class FastCollinearPoints {
         segments[index] = value;
     }
 
-    private void appendPoints(Point p, Point q, int index) {
-        if (index == addedPoints.length) {
-            resizeAddedPointsArray(index * 2 + 2);
+    private void appendPoints(Point p, Point q) {
+        if (addedNumber >= addedPoints.length) {
+            resizeAddedPointsArray(addedNumber * 2 + 2);
         }
-        addedPoints[index] = p;
-        addedPoints[index + 1] = q;
+        addedPoints[addedNumber] = p;
+        addedPoints[addedNumber + 1] = q;
+
+        addedNumber += 2;
     }
 
-    private boolean arrayContains(Point[] array, Point value) {
+    private boolean arrayHasNull(Point[] array) {
         for (int i = 0; i < array.length; i++) {
             Point point = array[i];
-            if (point == value) {
+            if (point == null) {
                 return true;
             }
         }

@@ -11,24 +11,26 @@ public final class BruteCollinearPoints {
 
     // finds all line segments containing 4 points
     public BruteCollinearPoints(Point[] array) {
-        if (array == null || array.length < 4 || arrayContains(array, null)) {
+        if (array == null || arrayHasNull(array)) {
             throw new IllegalArgumentException();
         }
+        points = array.clone();
 
-        for (int i = 0; i < array.length; i++) {
-            Point value = array[i];
-            array[i] = null;
-            if (arrayContains(array, value)) {
+        Point prev = null;
+        Arrays.sort(points);
+        for (Point p : points) {
+            if (prev != null && prev.compareTo(p) == 0) {
                 throw new IllegalArgumentException();
             }
-            array[i] = value;
+            prev = p;
         }
 
-        points = array.clone();
         segments = new LineSegment[0];
         addedPoints = new Point[0];
 
-        calculateSegments();
+        if (points.length >= 4) {
+            calculateSegments();
+        }
     }
 
     // the number of line segments
@@ -73,52 +75,38 @@ public final class BruteCollinearPoints {
                         double slopePS = p.slopeTo(s);
 
                         if (Double.compare(slopePQ, slopePR) == 0 && Double.compare(slopePQ, slopePS) == 0) {
-                            Point[] segment = new Point[3];
+                            Point[] segment = new Point[4];
                             segment[0] = p;
                             segment[1] = q;
                             segment[2] = r;
+                            segment[3] = s;
 
-                            number = addSegment(segment, p, number);
+                            number = addSegment(segment, number);
                         }
                     }
                 }
             }
         }
-
-        for (int i = 0; i < number * 2; i += 2) {
-            appendSegment(new LineSegment(addedPoints[i], addedPoints[i + 1]), i / 2);
-        }
     }
 
-    private int addSegment(Point[] segment, Point p, int segmentIndex) {
-        Point min = p;
-        Point max = p;
+    private int addSegment(Point[] segment, int segmentIndex) {
+        Arrays.sort(segment);
 
-        for (int i = 0; i < segment.length; i++) {
-            if (segment[i].compareTo(min) < 0) {
-                min = segment[i];
-            }
-            if (segment[i].compareTo(max) > 0) {
-                max = segment[i];
-            }
-        }
+        Point min = segment[0];
+        Point max = segment[3];
 
         boolean skip = false;
         for (int i = 0; i < segmentIndex * 2; i += 2) {
-            double existentSlope = addedPoints[i].slopeTo(addedPoints[i + 1]);
-            double currentSlope;
+            Point exMin = addedPoints[i];
+            Point exMax = addedPoints[i + 1];
 
-            if (p == addedPoints[i]) {
-                currentSlope = p.slopeTo(addedPoints[i + 1]);
-            } else {
-                currentSlope = p.slopeTo(addedPoints[i]);
-            }
+            boolean sameSegment = min.compareTo(exMin) == 0 && max.compareTo(exMax) == 0;
 
-            if (Double.compare(currentSlope, existentSlope) == 0) {
-                if (min.compareTo(addedPoints[i]) < 0) {
+            if (sameSegment) {
+                if (min.compareTo(exMin) < 0) {
                     addedPoints[i] = min;
                 }
-                if (max.compareTo(addedPoints[i + 1]) > 0) {
+                if (max.compareTo(exMax) > 0) {
                     addedPoints[i + 1] = max;
                 }
                 skip = true;
@@ -127,7 +115,9 @@ public final class BruteCollinearPoints {
         }
 
         if (!skip) {
-            appendPoints(min, max, 2 * segmentIndex++);
+            appendSegment(new LineSegment(min, max), segmentIndex);
+            appendPoints(min, max, 2 * segmentIndex);
+            segmentIndex++;
         }
 
         return segmentIndex;
@@ -148,10 +138,10 @@ public final class BruteCollinearPoints {
         addedPoints[index + 1] = q;
     }
 
-    private boolean arrayContains(Point[] array, Point value) {
+    private boolean arrayHasNull(Point[] array) {
         for (int i = 0; i < array.length; i++) {
             Point point = array[i];
-            if (point == value) {
+            if (point == null) {
                 return true;
             }
         }
