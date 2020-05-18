@@ -1,45 +1,73 @@
 import edu.princeton.cs.algs4.In;
-import edu.princeton.cs.algs4.Merge;
 import edu.princeton.cs.algs4.StdOut;
 
 import java.util.Arrays;
 
-public class FastCollinearPoints {
-    private Point[] points;
+public final class FastCollinearPoints {
+    private final Point[] points;
     private LineSegment[] segments;
     private Point[] addedPoints;
+    private int number;
 
     // finds all line segments containing 4 or more points
-    public FastCollinearPoints(Point[] points) {
-        if (points == null || points.length < 4 || arrayContains(points, null)) {
+    public FastCollinearPoints(Point[] array) {
+        if (array == null || array.length < 4 || arrayContains(array, null)) {
             throw new IllegalArgumentException();
         }
 
-        for (int i = 0; i < points.length; i++) {
-            Point value = points[i];
-            points[i] = null;
-            if (arrayContains(points, value)) {
+        for (int i = 0; i < array.length; i++) {
+            Point value = array[i];
+            array[i] = null;
+            if (arrayContains(array, value)) {
                 throw new IllegalArgumentException();
             }
-            points[i] = value;
+            array[i] = value;
         }
 
-        this.points = points;
+        points = array.clone();
         segments = new LineSegment[0];
         addedPoints = new Point[0];
+
+        calculateSegments();
     }
 
     // the number of line segments
     public int numberOfSegments() {
-        int number = 0;
+        return number;
+    }
 
+    // the line segments
+    public LineSegment[] segments() {
+        return Arrays.copyOf(segments, number);
+    }
+
+    public static void main(String[] args) {
+        In in = new In(args[0]);
+        int n = in.readInt();
+        Point[] points = new Point[n];
+        for (int i = 0; i < n; i++) {
+            int x = in.readInt();
+            int y = in.readInt();
+            points[i] = new Point(x, y);
+        }
+
+        FastCollinearPoints checker = new FastCollinearPoints(points);
+        LineSegment[] segments = checker.segments();
+        for (LineSegment segment : segments) {
+            StdOut.println(segment.toString());
+        }
+    }
+
+    private void calculateSegments() {
         for (int indexP = 0; indexP < points.length - 3; indexP++) {
             Point p = points[indexP];
 
+            /*
             double[] slopes = new double[points.length - indexP - 1];
             for (int i = indexP + 1; i < points.length; i++) {
                 slopes[i - indexP - 1] = p.slopeTo(points[i]);
             }
+             */
 
             Arrays.sort(points, indexP + 1, points.length, p.slopeOrder());
 
@@ -50,7 +78,7 @@ public class FastCollinearPoints {
                 Point q = points[i];
                 double slope = p.slopeTo(q);
 
-                if (slope == prevValue) {
+                if (Double.compare(slope, prevValue) == 0) {
                     counter++;
                 } else {
                     if (counter > 2) {
@@ -65,56 +93,6 @@ public class FastCollinearPoints {
                 number = addSegment(p, points.length - 1, counter, number);
             }
         }
-
-        return number;
-    }
-
-    // the line segments
-    public LineSegment[] segments() {
-        return segments;
-    }
-
-    public static void main(String[] args) {
-//        Point[] points = {
-//                new Point(10000, 0),
-//                new Point(0, 10000),
-//                new Point(3000, 7000),
-//                new Point(7000, 3000),
-//                new Point(20000, 21000),
-//                new Point(20000, 21000),
-
-//                new Point(19000, 10000),
-//                new Point(18000, 10000),
-//                new Point(32000, 10000),
-//                new Point(21000, 10000),
-//                new Point(1234, 5678),
-//                new Point(14000, 10000),
-
-//                new Point(30, 30),
-//                new Point(20, 40),
-//                new Point(10, 10),
-//                new Point(10, 20),
-//                new Point(30, 10),
-//                new Point( 0,  0),
-//                new Point(40, 10),
-//                new Point(20, 20),
-//                new Point(20, 10),
-//                new Point(50, 10),
-//                new Point(40, 40),
-//        };
-
-        In in = new In(args[0]);
-        int n = in.readInt();
-        Point[] points = new Point[n];
-        for (int i = 0; i < n; i++) {
-            int x = in.readInt();
-            int y = in.readInt();
-            points[i] = new Point(x, y);
-        }
-
-        FastCollinearPoints checker = new FastCollinearPoints(points);
-        StdOut.println(checker.numberOfSegments());
-        StdOut.println(Arrays.toString(checker.segments()));
     }
 
     private int addSegment(Point p, int index, int pointsNumber, int segmentIndex) {
@@ -135,7 +113,7 @@ public class FastCollinearPoints {
             double existentSlope = addedPoints[i].slopeTo(addedPoints[i + 1]);
             double currentSlope = p.slopeTo(addedPoints[i]);
 
-            if (currentSlope == existentSlope) {
+            if (Double.compare(currentSlope, existentSlope) == 0) {
                 return segmentIndex;
             }
         }
@@ -161,9 +139,9 @@ public class FastCollinearPoints {
         addedPoints[index + 1] = q;
     }
 
-    private boolean arrayContains(Point[] points, Point value) {
-        for (int i = 0; i < points.length; i++) {
-            Point point = points[i];
+    private boolean arrayContains(Point[] array, Point value) {
+        for (int i = 0; i < array.length; i++) {
+            Point point = array[i];
             if (point == value) {
                 return true;
             }
