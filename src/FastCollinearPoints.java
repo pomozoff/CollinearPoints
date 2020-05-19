@@ -1,14 +1,14 @@
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.StdOut;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public final class FastCollinearPoints {
     private final Point[] points;
-    private LineSegment[] segments;
-    private Point[] addedPoints;
-    private int number;
-    private int addedNumber = 0;
+    private List<LineSegment> segments;
+    private List<Point> addedPoints;
 
     // finds all line segments containing 4 or more points
     public FastCollinearPoints(Point[] array) {
@@ -26,8 +26,8 @@ public final class FastCollinearPoints {
             prev = p;
         }
 
-        segments = new LineSegment[0];
-        addedPoints = new Point[0];
+        segments = new ArrayList<>();
+        addedPoints = new ArrayList<>();
 
         if (points.length >= 4) {
             calculateSegments();
@@ -36,12 +36,12 @@ public final class FastCollinearPoints {
 
     // the number of line segments
     public int numberOfSegments() {
-        return number;
+        return segments.size();
     }
 
     // the line segments
     public LineSegment[] segments() {
-        return Arrays.copyOf(segments, number);
+        return segments.toArray(new LineSegment[segments.size()]);
     }
 
     public static void main(String[] args) {
@@ -86,7 +86,7 @@ public final class FastCollinearPoints {
                     counter++;
                 } else {
                     if (counter > 2) {
-                        number = addSegment(p, i - 1, counter, number);
+                        addSegment(p, i - 1, counter);
                     }
                     counter = 1;
                     prevSlope = slope;
@@ -94,12 +94,12 @@ public final class FastCollinearPoints {
             }
 
             if (counter > 2) {
-                number = addSegment(p, points.length - 1, counter, number);
+                addSegment(p, points.length - 1, counter);
             }
         }
     }
 
-    private int addSegment(Point p, int index, int pointsNumber, int segmentIndex) {
+    private void addSegment(Point p, int index, int pointsNumber) {
         Point min = p;
         Point max = p;
 
@@ -113,9 +113,9 @@ public final class FastCollinearPoints {
             }
         }
 
-        for (int i = 0; i < addedNumber; i += 2) {
-            Point exMin = addedPoints[i];
-            Point exMax = addedPoints[i + 1];
+        for (int i = 0; i < addedPoints.size(); i += 2) {
+            Point exMin = addedPoints.get(i);
+            Point exMax = addedPoints.get(i + 1);
 
             if (min.compareTo(exMin) < 0 || max.compareTo(exMax) > 0) {
                 continue;
@@ -134,33 +134,19 @@ public final class FastCollinearPoints {
             if (Double.compare(currentSlope, existentSlope) == 0
                         && Double.compare(currentSlope, compareSlope) == 0
             ) {
-                return segmentIndex;
+                return;
             }
         }
 
         if (pointsNumber > 3) {
             appendPoints(min, max);
         }
-        appendSegment(new LineSegment(min, max), segmentIndex);
-
-        return segmentIndex + 1;
-    }
-
-    private void appendSegment(LineSegment value, int index) {
-        if (index == segments.length) {
-            resizeSegmentsArray(index * 2 + 1);
-        }
-        segments[index] = value;
+        segments.add(new LineSegment(min, max));
     }
 
     private void appendPoints(Point p, Point q) {
-        if (addedNumber >= addedPoints.length) {
-            resizeAddedPointsArray(addedNumber * 2 + 2);
-        }
-        addedPoints[addedNumber] = p;
-        addedPoints[addedNumber + 1] = q;
-
-        addedNumber += 2;
+        addedPoints.add(p);
+        addedPoints.add(q);
     }
 
     private boolean arrayHasNull(Point[] array) {
@@ -171,21 +157,5 @@ public final class FastCollinearPoints {
             }
         }
         return false;
-    }
-
-    private void resizeSegmentsArray(int newCapacity) {
-        LineSegment[] newArray = new LineSegment[newCapacity];
-        for (int i = 0; i < Math.min(newCapacity, segments.length); i++) {
-            newArray[i] = segments[i];
-        }
-        segments = newArray;
-    }
-
-    private void resizeAddedPointsArray(int newCapacity) {
-        Point[] newArray = new Point[newCapacity];
-        for (int i = 0; i < Math.min(newCapacity, addedPoints.length); i++) {
-            newArray[i] = addedPoints[i];
-        }
-        addedPoints = newArray;
     }
 }
